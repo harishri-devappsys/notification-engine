@@ -1,0 +1,75 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/notification_db
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        auto-startup: true
+        acknowledge-mode: auto
+    template:
+      mandatory: true
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: mqstream@gmail.com
+    password: pxqfzdwrnypgsars
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: false #Remove in prod
+          ssl:
+            trust: "*" #Test purpose, remove in prod
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+          debug: true
+
+notification:
+  frequency:
+    max-daily: 500 # Just to do a small research to know freqency limit of notification, can be ignored
+    min-interval-seconds: 2
+
+logging:
+  level:
+    com.valura.notification: DEBUG
+    org.springframework.data.mongodb: INFO
+    org.springframework.amqp: INFO
+    org.springframework.mail: DEBUG
+    com.sun.mail: DEBUG
+
+firebase:
+  credentials:
+    file: classpath:firebase-service-account.json
+
+
+#
+#    # Email Provider Configuration
+#    # Options: smtp, mailchimp
+#    notification.email.provider=smtp
+#
+#    # SMTP Configuration (for smtp provider)
+#    spring.mail.host=smtp.gmail.com
+#    spring.mail.port=587
+#    spring.mail.username=${MAIL_USERNAME}
+#    spring.mail.password=${MAIL_PASSWORD}
+#    spring.mail.properties.mail.smtp.auth=true
+#    spring.mail.properties.mail.smtp.starttls.enable=true
+#
+#    # Mailchimp Configuration (for mailchimp provider)
+#    notification.mailchimp.api-key=${MAILCHIMP_API_KEY:}
+#    notification.mailchimp.from-email=${MAILCHIMP_FROM_EMAIL:}
+#    notification.mailchimp.from-name=${MAILCHIMP_FROM_NAME:Valura Notifications}
+#
+#    # Notification Service Configuration
+#    notification.frequency.min-interval-seconds=2
+#    notification.deduplication.window-minutes=30
