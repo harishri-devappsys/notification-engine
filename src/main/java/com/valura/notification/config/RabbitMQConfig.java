@@ -13,7 +13,6 @@ import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PostConstruct;
 
-
 @Configuration
 public class RabbitMQConfig {
 
@@ -63,27 +62,5 @@ public class RabbitMQConfig {
         RabbitAdmin admin = new RabbitAdmin(connectionFactory);
         admin.setAutoStartup(true);
         return admin;
-    }
-
-    @PostConstruct
-    public void initRabbitMQ() {
-        logger.info("Initializing RabbitMQ infrastructure after bean creation");
-        try {
-            RabbitAdmin admin = rabbitAdmin();
-
-            // Force declaration of all components
-            admin.declareExchange(notificationExchange());
-            logger.info("Exchange declared: {}", NOTIFICATION_EXCHANGE);
-
-            admin.declareQueue(notificationQueue());
-            logger.info("Queue declared: {}", NOTIFICATION_QUEUE);
-
-            admin.declareBinding(notificationBinding());
-            logger.info("Binding declared: {} -> {}", NOTIFICATION_EXCHANGE, NOTIFICATION_QUEUE);
-
-            logger.info("RabbitMQ infrastructure initialized successfully!");
-        } catch (Exception e) {
-            logger.error("Error initializing RabbitMQ infrastructure", e);
-        }
     }
 }
