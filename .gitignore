@@ -4,7 +4,7 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
-
+.application.yaml
 ### STS ###
 .apt_generated
 .classpath
@@ -35,3 +35,4 @@ out/
 
 ### VS Code ###
 .vscode/
+.env

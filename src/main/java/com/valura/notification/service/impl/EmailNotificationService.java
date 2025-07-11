@@ -2,10 +2,10 @@ package com.valura.notification.service.impl;
 
 import com.valura.notification.model.Notification;
 import com.valura.notification.model.NotificationResponse;
+import com.valura.notification.service.EmailProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
@@ -15,45 +15,46 @@ public class EmailNotificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailNotificationService.class);
 
-    private final JavaMailSender mailSender;
+    @Value("${notification.email.provider:smtp}")
+    private String configuredProvider;
 
-    public EmailNotificationService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+    private final EmailProvider emailProvider;
+
+    public EmailNotificationService(EmailProvider emailProvider) {
+        this.emailProvider = emailProvider;
     }
 
     public CompletableFuture<NotificationResponse> sendNotification(Notification notification, String emailAddress) {
-        return CompletableFuture.supplyAsync(() -> {
-            logger.info("Attempting to send email notification to: {}", emailAddress);
-            logger.debug("Email notification details - Title: {}, Body: {}", notification.getTitle(), notification.getBody());
+        logger.info("Using {} email provider to send notification to: {}",
+                emailProvider.getProviderName(), emailAddress);
 
-            try {
-                logger.debug("Creating MIME message...");
-                var message = mailSender.createMimeMessage();
-                var helper = new MimeMessageHelper(message, true);
+        if (!emailProvider.isConfigured()) {
+            logger.error("{} email provider is not properly configured", emailProvider.getProviderName());
+            return CompletableFuture.completedFuture(new NotificationResponse(
+                    false,
+                    emailProvider.getProviderName() + " email provider is not properly configured"
+            ));
+        }
 
-                logger.debug("Setting email parameters...");
-                helper.setTo(emailAddress);
-                helper.setSubject(notification.getTitle());
-                helper.setText(notification.getBody(), true);
-                helper.setFrom(System.getenv("MAIL_USERNAME") != null ? System.getenv("MAIL_USERNAME") : "mqstream@gmail.com");
+        return emailProvider.sendEmail(notification, emailAddress)
+                .handle((response, throwable) -> {
+                    if (throwable != null) {
+                        logger.error("Error occurred while sending email via {}: {}",
+                                emailProvider.getProviderName(), throwable.getMessage());
+                        return new NotificationResponse(
+                                false,
+                                "Error sending email via " + emailProvider.getProviderName() + ": " + throwable.getMessage()
+                        );
+                    }
+                    return response;
+                });
+    }
 
-                logger.info("Sending email message...");
-                mailSender.send(message);
-                logger.info("Successfully sent email notification to: {}", emailAddress);
+    public String getCurrentProvider() {
+        return emailProvider.getProviderName();
+    }
 
-                return new NotificationResponse(
-                        true,
-                        "Successfully sent email notification to: " + emailAddress
-                );
-            } catch (Exception e) {
-                logger.error("Error sending email notification to: {}", emailAddress);
-                logger.error("Error details: {}", e.getMessage());
-                logger.error("Stack trace:", e);
-                return new NotificationResponse(
-                        false,
-                        "Failed to send email notification: " + e.getMessage()
-                );
-            }
-        });
+    public boolean isProviderConfigured() {
+        return emailProvider.isConfigured();
     }
 }

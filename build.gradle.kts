@@ -25,12 +25,15 @@ dependencies {
 
 	// RabbitMQ support
 	implementation("org.springframework.boot:spring-boot-starter-amqp")
-
+	implementation("com.fasterxml.jackson.core:jackson-databind")
 	// Mail support
 	implementation("org.springframework.boot:spring-boot-starter-mail")
 
 	// For async and JSON mapping
 	implementation("com.fasterxml.jackson.core:jackson-databind")
+	// Logging
+	implementation("org.slf4j:slf4j-api")
+	implementation("ch.qos.logback:logback-classic")
 
 	// Testing
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
