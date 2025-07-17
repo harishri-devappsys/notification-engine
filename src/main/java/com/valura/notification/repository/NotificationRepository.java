@@ -9,8 +9,8 @@ import java.util.List;
 
 @Repository
 public interface NotificationRepository extends MongoRepository<Notification, String> {
-    List<Notification> findByUserId(int userId);
+    List<Notification> findByRecipientId(String recipientId);
 
-    @Query("{ 'userId': ?0, 'contentHash': ?1, 'createdAt': { $gte: ?2 } }")
-    List<Notification> findDuplicates(int userId, String contentHash, Instant since);
+    @Query("{ 'recipientId': ?0, 'channelType': ?1, 'contentHash': ?2, 'createdAt': { $gte: ?3 } }")
+    List<Notification> findDuplicates(String recipientId, String channelType, String contentHash, Instant since);
 }

@@ -11,7 +11,7 @@ import java.time.Instant;
 public class Notification {
     @Id
     private String id;
-    private int userId;
+    private String recipientId;
     private String title;
     private String body;
     private NotificationStatus status;
@@ -20,23 +20,25 @@ public class Notification {
     private Instant updatedAt;
     private NotificationResponse response;
     private String contentHash;
+    private String channelType;
 
     public Notification() {}
 
-    public Notification(int userId, String title, String body, NotificationStatus status) {
-        this.userId = userId;
+    public Notification(String recipientId, String title, String body, String channelType, NotificationStatus status) {
+        this.recipientId = recipientId;
         this.title = title;
         this.body = body;
+        this.channelType = channelType;
         this.status = status != null ? status : NotificationStatus.PENDING;
         this.deliveryAttempts = 0;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
-        this.contentHash = generateContentHash(userId, title, body);
+        this.contentHash = generateContentHash(recipientId, title, body, channelType);
     }
 
-    public static String generateContentHash(int userId, String title, String body) {
+    public static String generateContentHash(String recipientId, String title, String body, String channelType) {
         try {
-            String content = userId + ":" + title + ":" + body;
+            String content = recipientId + ":" + channelType + ":" + title + ":" + body;
             byte[] bytes = MessageDigest.getInstance("SHA-256")
                     .digest(content.getBytes());
             StringBuilder result = new StringBuilder();
@@ -51,8 +53,8 @@ public class Notification {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    public int getUserId() { return userId; }
-    public void setUserId(int userId) { this.userId = userId; }
+    public String getRecipientId() { return recipientId; }
+    public void setRecipientId(String recipientId) { this.recipientId = recipientId; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getBody() { return body; }
@@ -69,5 +71,6 @@ public class Notification {
     public void setResponse(NotificationResponse response) { this.response = response; }
     public String getContentHash() { return contentHash; }
     public void setContentHash(String contentHash) { this.contentHash = contentHash; }
+    public String getChannelType() { return channelType; }
+    public void setChannelType(String channelType) { this.channelType = channelType; }
 }
-

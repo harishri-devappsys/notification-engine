@@ -1,7 +1,6 @@
 package com.valura.notification.service;
 
-import com.valura.notification.model.Notification;
-import com.valura.notification.model.NotificationResponse;
+import com.valura.notification.model.SendEmailModel;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -12,13 +11,12 @@ import java.util.concurrent.CompletableFuture;
 public interface EmailProvider {
 
     /**
-     * Send email notification using the specific provider implementation
+     * Send email notification using the specific provider implementation, directly from the RabbitMQ model.
      *
-     * @param notification The notification to send
-     * @param emailAddress The recipient email address
-     * @return CompletableFuture containing the notification response
+     * @param emailModel The SendEmailModel containing all email details
+     * @return CompletableFuture that completes when the email is sent, or completes exceptionally on failure
      */
-    CompletableFuture<NotificationResponse> sendEmail(Notification notification, String emailAddress);
+    CompletableFuture<Void> sendEmail(SendEmailModel emailModel);
 
     /**
      * Get the provider name for logging and identification

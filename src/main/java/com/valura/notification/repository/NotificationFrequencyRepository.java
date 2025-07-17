@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface NotificationFrequencyRepository extends MongoRepository<NotificationFrequency, String> {
-    NotificationFrequency findByUserIdAndChannelTypeAndDate(int userId, String channelType, LocalDate date);
-    List<NotificationFrequency> findAllByUserIdAndDate(int userId, LocalDate date);
+    NotificationFrequency findByRecipientIdAndChannelTypeAndDate(String recipientId, String channelType, LocalDate date);
+    List<NotificationFrequency> findAllByRecipientIdAndDate(String recipientId, LocalDate date);
 }

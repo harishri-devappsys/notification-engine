@@ -1,7 +1,6 @@
 package com.valura.notification.service.impl;
 
-import com.valura.notification.model.Notification;
-import com.valura.notification.model.NotificationResponse;
+import com.valura.notification.model.SendEmailModel;
 import com.valura.notification.service.EmailProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,29 +23,22 @@ public class EmailNotificationService {
         this.emailProvider = emailProvider;
     }
 
-    public CompletableFuture<NotificationResponse> sendNotification(Notification notification, String emailAddress) {
-        logger.info("Using {} email provider to send notification to: {}",
-                emailProvider.getProviderName(), emailAddress);
+    public CompletableFuture<Void> sendEmail(SendEmailModel emailModel) {
+        logger.info("Using {} email provider to send email from RabbitMQ to: {} with subject: {}",
+                emailProvider.getProviderName(), emailModel.getTo(), emailModel.getSubject());
 
         if (!emailProvider.isConfigured()) {
-            logger.error("{} email provider is not properly configured", emailProvider.getProviderName());
-            return CompletableFuture.completedFuture(new NotificationResponse(
-                    false,
+            logger.error("{} email provider is not properly configured for SendEmailModel", emailProvider.getProviderName());
+            return CompletableFuture.failedFuture(new IllegalStateException(
                     emailProvider.getProviderName() + " email provider is not properly configured"
             ));
         }
 
-        return emailProvider.sendEmail(notification, emailAddress)
-                .handle((response, throwable) -> {
-                    if (throwable != null) {
-                        logger.error("Error occurred while sending email via {}: {}",
-                                emailProvider.getProviderName(), throwable.getMessage());
-                        return new NotificationResponse(
-                                false,
-                                "Error sending email via " + emailProvider.getProviderName() + ": " + throwable.getMessage()
-                        );
-                    }
-                    return response;
+        return emailProvider.sendEmail(emailModel)
+                .exceptionally(throwable -> {
+                    logger.error("Error occurred while sending email via {} for SendEmailModel: {}",
+                            emailProvider.getProviderName(), throwable.getMessage());
+                    throw new RuntimeException("Failed to send email via " + emailProvider.getProviderName(), throwable);
                 });
     }
 

@@ -10,8 +10,9 @@ import java.time.LocalDate;
 public class NotificationFrequency {
     @Id
     private String id;
-    private int userId;
-    private String channelType;
+    // Changed from int userId to String recipientId
+    private String recipientId;
+    private String channelType; // e.g., "email", "sms", "push"
     private Instant lastSentAt;
     private int dailyCount;
     private LocalDate date;
@@ -20,8 +21,9 @@ public class NotificationFrequency {
         this.date = LocalDate.now();
     }
 
-    public NotificationFrequency(int userId, String channelType, Instant lastSentAt, int dailyCount) {
-        this.userId = userId;
+    // Updated constructor to use String recipientId
+    public NotificationFrequency(String recipientId, String channelType, Instant lastSentAt, int dailyCount) {
+        this.recipientId = recipientId;
         this.channelType = channelType;
         this.lastSentAt = lastSentAt;
         this.dailyCount = dailyCount;
@@ -30,8 +32,11 @@ public class NotificationFrequency {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    public int getUserId() { return userId; }
-    public void setUserId(int userId) { this.userId = userId; }
+
+    // Updated getter and setter for recipientId
+    public String getRecipientId() { return recipientId; }
+    public void setRecipientId(String recipientId) { this.recipientId = recipientId; }
+
     public String getChannelType() { return channelType; }
     public void setChannelType(String channelType) { this.channelType = channelType; }
     public Instant getLastSentAt() { return lastSentAt; }

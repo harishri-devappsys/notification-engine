@@ -10,22 +10,27 @@ import java.util.List;
 public class UserPreference {
     @Id
     private String id;
-    private int userId;
+    // Changed from int userId to String recipientId
+    // This field will store the email, phone number, or push token as the unique identifier
+    private String recipientId;
     @Field("notification")
     private List<NotificationChannel> notification;
 
     public UserPreference() {}
 
-    public UserPreference(int userId, List<NotificationChannel> notification) {
-        this.userId = userId;
+    // Updated constructor to use String recipientId
+    public UserPreference(String recipientId, List<NotificationChannel> notification) {
+        this.recipientId = recipientId;
         this.notification = notification;
     }
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    public int getUserId() { return userId; }
-    public void setUserId(int userId) { this.userId = userId; }
+
+    // Updated getter and setter for recipientId
+    public String getRecipientId() { return recipientId; }
+    public void setRecipientId(String recipientId) { this.recipientId = recipientId; }
+
     public List<NotificationChannel> getNotification() { return notification; }
     public void setNotification(List<NotificationChannel> notification) { this.notification = notification; }
 }
-

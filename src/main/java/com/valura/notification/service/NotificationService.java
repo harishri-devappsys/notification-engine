@@ -1,12 +1,12 @@
 package com.valura.notification.service;
 
-import com.valura.notification.model.Notification;
-import com.valura.notification.model.NotificationResponse;
+import com.valura.notification.model.SendEmailModel;
+import com.valura.notification.model.SendPhoneModel;
 
 import java.util.concurrent.CompletableFuture;
 
 public interface NotificationService {
-    CompletableFuture<Void> processNotification(Notification notification);
-    CompletableFuture<NotificationResponse> sendNotification(Notification notification);
-    Notification saveNotification(Notification notification);
+    CompletableFuture<Void> sendEmail(SendEmailModel emailModel);
+    CompletableFuture<Void> sendSms(SendPhoneModel phoneModel);
+    CompletableFuture<Void> sendPush(String message);
 }
