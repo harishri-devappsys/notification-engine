@@ -37,13 +37,11 @@ public class NotificationServiceImpl implements NotificationService {
             NotificationRepository notificationRepository,
             UserPreferenceRepository userPreferenceRepository,
             NotificationFrequencyRepository notificationFrequencyRepository,
-            // Removed FirebaseNotificationService from constructor
             EmailNotificationService emailService
     ) {
         this.notificationRepository = notificationRepository;
         this.userPreferenceRepository = userPreferenceRepository;
         this.notificationFrequencyRepository = notificationFrequencyRepository;
-        // Removed assignment of firebaseService
         this.emailService = emailService;
     }
 
@@ -155,7 +153,6 @@ public class NotificationServiceImpl implements NotificationService {
             CompletableFuture<NotificationResponse> responseFuture;
             switch (channel.getType().toLowerCase()) {
                 case "firebase":
-                    // Firebase notification is not implemented yet
                     responseFuture = CompletableFuture.completedFuture(new NotificationResponse(false, "Firebase notification not implemented yet"));
                     break;
                 case "mail":

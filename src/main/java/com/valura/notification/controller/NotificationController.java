@@ -90,43 +90,43 @@ public class NotificationController {
         return ResponseEntity.ok("Notification queued successfully");
     }
 
-    @GetMapping("/status/all")
-    public ResponseEntity<List<Notification>> getAllNotifications() {
-        List<Notification> notifications = notificationRepository.findAll();
-        return ResponseEntity.ok(notifications);
-    }
-
-    @GetMapping("/status/user/{userId}")
-    public ResponseEntity<List<Notification>> getUserNotifications(@PathVariable int userId) {
-        List<Notification> notifications = notificationRepository.findByUserId(userId);
-        return ResponseEntity.ok(notifications);
-    }
-
-    @GetMapping("/status/latest/{userId}")
-    public ResponseEntity<Notification> getLatestUserNotification(@PathVariable int userId) {
-        List<Notification> notifications = notificationRepository.findByUserId(userId);
-        Optional<Notification> latestNotification = notifications.stream()
-                .max((n1, n2) -> n1.getCreatedAt().compareTo(n2.getCreatedAt()));
-        if (latestNotification.isPresent()) {
-            return ResponseEntity.ok(latestNotification.get());
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @GetMapping("/stats/{userId}")
-    public ResponseEntity<List<NotificationStats>> getNotificationStats(
-            @PathVariable int userId,
-            @RequestParam(required = false) String channelType
-    ) {
-        var stats = notificationService.getNotificationStats(userId, channelType)
-                .stream()
-                .map(freq -> new NotificationStats(
-                        freq.getChannelType(),
-                        freq.getDailyCount(),
-                        freq.getLastSentAt().toString()
-                ))
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(stats);
-    }
+//    @GetMapping("/status/all")
+//    public ResponseEntity<List<Notification>> getAllNotifications() {
+//        List<Notification> notifications = notificationRepository.findAll();
+//        return ResponseEntity.ok(notifications);
+//    }
+//
+//    @GetMapping("/status/user/{userId}")
+//    public ResponseEntity<List<Notification>> getUserNotifications(@PathVariable int userId) {
+//        List<Notification> notifications = notificationRepository.findByUserId(userId);
+//        return ResponseEntity.ok(notifications);
+//    }
+//
+//    @GetMapping("/status/latest/{userId}")
+//    public ResponseEntity<Notification> getLatestUserNotification(@PathVariable int userId) {
+//        List<Notification> notifications = notificationRepository.findByUserId(userId);
+//        Optional<Notification> latestNotification = notifications.stream()
+//                .max((n1, n2) -> n1.getCreatedAt().compareTo(n2.getCreatedAt()));
+//        if (latestNotification.isPresent()) {
+//            return ResponseEntity.ok(latestNotification.get());
+//        } else {
+//            return ResponseEntity.notFound().build();
+//        }
+//    }
+//
+//    @GetMapping("/stats/{userId}")
+//    public ResponseEntity<List<NotificationStats>> getNotificationStats(
+//            @PathVariable int userId,
+//            @RequestParam(required = false) String channelType
+//    ) {
+//        var stats = notificationService.getNotificationStats(userId, channelType)
+//                .stream()
+//                .map(freq -> new NotificationStats(
+//                        freq.getChannelType(),
+//                        freq.getDailyCount(),
+//                        freq.getLastSentAt().toString()
+//                ))
+//                .collect(Collectors.toList());
+//        return ResponseEntity.ok(stats);
+//    }
 }
