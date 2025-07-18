@@ -6,5 +6,8 @@ public enum NotificationStatus {
     DELIVERED,
     FAILED,
     DUPLICATE,
-    BLOCKED
+    BLOCKED,
+    BLOCKED_FREQUENCY,
+    BLOCKED_DAILY_LIMIT
+
 }

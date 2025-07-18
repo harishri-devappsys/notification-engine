@@ -38,6 +38,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Value("${notification.deduplication.window-minutes:30}")
     private long deduplicationWindowMinutes = 30;
 
+    @Value("${notification.frequency.max-daily:500}")
+    private int maxDailyNotifications = 500;
+
     public NotificationServiceImpl(
             NotificationRepository notificationRepository,
             UserPreferenceRepository userPreferenceRepository,
@@ -60,39 +63,37 @@ public class NotificationServiceImpl implements NotificationService {
                 emailModel.getTo(),
                 emailModel.getSubject(),
                 emailModel.getBody(),
-                "mail",
+                "email",
                 NotificationStatus.PENDING
         );
 
         return processAndDispatchNotification(notification)
-                .thenCompose(response -> {
-                    if (response.isSuccess()) {
-                        logger.info("Tracking successful for email to {}, proceeding to send via provider.", emailModel.getTo());
-                        return emailService.sendEmail(emailModel)
-                                .handle((voidResult, throwable) -> { // Changed providerResponse to voidResult to indicate it's Void
-                                    NotificationResponse finalResponse;
-                                    if (throwable != null) {
-                                        logger.error("Error sending email via provider for {}: {}", emailModel.getTo(), throwable.getMessage());
-                                        finalResponse = new NotificationResponse(false, "Provider error: " + throwable.getMessage());
-                                        notification.setStatus(NotificationStatus.FAILED);
-                                    } else {
-                                        logger.info("Email sent successfully via provider for {}.", emailModel.getTo());
-                                        // Create NotificationResponse here as emailService.sendEmail returns CompletableFuture<Void>
-                                        finalResponse = new NotificationResponse(true, "Email sent successfully via " + emailService.getCurrentProvider() + ".");
-                                        notification.setStatus(NotificationStatus.DELIVERED);
-                                    }
-                                    notification.setResponse(finalResponse);
-                                    notification.setUpdatedAt(Instant.now());
-                                    notificationRepository.save(notification);
-                                    if (!finalResponse.isSuccess()) {
-                                        throw new RuntimeException(finalResponse.getMessage());
-                                    }
-                                    return null;
-                                });
-                    } else {
-                        logger.warn("Email to {} blocked or duplicate. Reason: {}", emailModel.getTo(), response.getMessage());
-                        return CompletableFuture.failedFuture(new RuntimeException(response.getMessage()));
+                .thenCompose(preCheckResponse -> {
+                    if (!preCheckResponse.isSuccess()) {
+                        return CompletableFuture.failedFuture(new RuntimeException(preCheckResponse.getMessage()));
                     }
+                    logger.info("Tracking successful for email to {}, proceeding to send via provider.", emailModel.getTo());
+                    return emailService.sendEmail(emailModel)
+                            .handle((voidResult, throwable) -> {
+                                NotificationResponse finalResponse;
+                                if (throwable != null) {
+                                    logger.error("Error sending email via provider for {}: {}", emailModel.getTo(), throwable.getMessage());
+                                    finalResponse = new NotificationResponse(false, "Provider error: " + throwable.getMessage());
+                                    notification.setStatus(NotificationStatus.FAILED);
+                                } else {
+                                    logger.info("Email sent successfully via provider for {}.", emailModel.getTo());
+                                    finalResponse = new NotificationResponse(true, "Email sent successfully via " + emailService.getCurrentProvider() + ".");
+                                    notification.setStatus(NotificationStatus.DELIVERED);
+                                    updateNotificationFrequency(notification);
+                                }
+                                notification.setResponse(finalResponse);
+                                notification.setUpdatedAt(Instant.now());
+                                notificationRepository.save(notification);
+                                if (!finalResponse.isSuccess()) {
+                                    throw new RuntimeException(finalResponse.getMessage());
+                                }
+                                return null;
+                            });
                 });
     }
 
@@ -109,36 +110,33 @@ public class NotificationServiceImpl implements NotificationService {
         );
 
         return processAndDispatchNotification(notification)
-                .thenCompose(response -> {
-                    if (response.isSuccess()) {
-                        logger.info("Tracking successful for SMS to {}, proceeding to send via provider (placeholder).", phoneModel.phone());
-                        // Changed to CompletableFuture<Void> to match email service pattern
-                        CompletableFuture<Void> smsSendFuture = CompletableFuture.completedFuture(null);
-
-                        return smsSendFuture.handle((voidResult, throwable) -> { // Changed providerResponse to voidResult
-                            NotificationResponse finalResponse;
-                            if (throwable != null) {
-                                logger.error("Error sending SMS via provider for {}: {}", phoneModel.phone(), throwable.getMessage());
-                                finalResponse = new NotificationResponse(false, "Provider error: " + throwable.getMessage());
-                                notification.setStatus(NotificationStatus.FAILED);
-                            } else {
-                                logger.info("SMS sent successfully via provider (placeholder) for {}.", phoneModel.phone());
-                                // Create NotificationResponse here
-                                finalResponse = new NotificationResponse(true, "SMS sent successfully (placeholder).");
-                                notification.setStatus(NotificationStatus.DELIVERED);
-                            }
-                            notification.setResponse(finalResponse);
-                            notification.setUpdatedAt(Instant.now());
-                            notificationRepository.save(notification);
-                            if (!finalResponse.isSuccess()) {
-                                throw new RuntimeException(finalResponse.getMessage());
-                            }
-                            return null;
-                        });
-                    } else {
-                        logger.warn("SMS to {} blocked or duplicate. Reason: {}", phoneModel.phone(), response.getMessage());
-                        return CompletableFuture.failedFuture(new RuntimeException(response.getMessage()));
+                .thenCompose(preCheckResponse -> {
+                    if (!preCheckResponse.isSuccess()) {
+                        return CompletableFuture.failedFuture(new RuntimeException(preCheckResponse.getMessage()));
                     }
+                    logger.info("Tracking successful for SMS to {}, proceeding to send via provider (placeholder).", phoneModel.phone());
+                    CompletableFuture<Void> smsSendFuture = CompletableFuture.completedFuture(null);
+
+                    return smsSendFuture.handle((voidResult, throwable) -> {
+                        NotificationResponse finalResponse;
+                        if (throwable != null) {
+                            logger.error("Error sending SMS via provider for {}: {}", phoneModel.phone(), throwable.getMessage());
+                            finalResponse = new NotificationResponse(false, "Provider error: " + throwable.getMessage());
+                            notification.setStatus(NotificationStatus.FAILED);
+                        } else {
+                            logger.info("SMS sent successfully via provider (placeholder) for {}.", phoneModel.phone());
+                            finalResponse = new NotificationResponse(true, "SMS sent successfully (placeholder).");
+                            notification.setStatus(NotificationStatus.DELIVERED);
+                            updateNotificationFrequency(notification);
+                        }
+                        notification.setResponse(finalResponse);
+                        notification.setUpdatedAt(Instant.now());
+                        notificationRepository.save(notification);
+                        if (!finalResponse.isSuccess()) {
+                            throw new RuntimeException(finalResponse.getMessage());
+                        }
+                        return null;
+                    });
                 });
     }
 
@@ -178,36 +176,33 @@ public class NotificationServiceImpl implements NotificationService {
         );
 
         return processAndDispatchNotification(notification)
-                .thenCompose(response -> {
-                    if (response.isSuccess()) {
-                        logger.info("Tracking successful for Push to {}, proceeding to send via provider (placeholder).", recipientId);
-                        // Changed to CompletableFuture<Void> to match email service pattern
-                        CompletableFuture<Void> pushSendFuture = CompletableFuture.completedFuture(null);
-
-                        return pushSendFuture.handle((voidResult, throwable) -> { // Changed providerResponse to voidResult
-                            NotificationResponse finalResponse;
-                            if (throwable != null) {
-                                logger.error("Error sending Push via provider for {}: {}", recipientId, throwable.getMessage());
-                                finalResponse = new NotificationResponse(false, "Provider error: " + throwable.getMessage());
-                                notification.setStatus(NotificationStatus.FAILED);
-                            } else {
-                                logger.info("Push sent successfully via provider (placeholder) for {}.", recipientId);
-                                // Create NotificationResponse here
-                                finalResponse = new NotificationResponse(true, "Push notification sent successfully (placeholder).");
-                                notification.setStatus(NotificationStatus.DELIVERED);
-                            }
-                            notification.setResponse(finalResponse);
-                            notification.setUpdatedAt(Instant.now());
-                            notificationRepository.save(notification);
-                            if (!finalResponse.isSuccess()) {
-                                throw new RuntimeException(finalResponse.getMessage());
-                            }
-                            return null;
-                        });
-                    } else {
-                        logger.warn("Push to {} blocked or duplicate. Reason: {}", recipientId, response.getMessage());
-                        return CompletableFuture.failedFuture(new RuntimeException(response.getMessage()));
+                .thenCompose(preCheckResponse -> {
+                    if (!preCheckResponse.isSuccess()) {
+                        return CompletableFuture.failedFuture(new RuntimeException(preCheckResponse.getMessage()));
                     }
+                    logger.info("Tracking successful for Push to {}, proceeding to send via provider (placeholder).", recipientId);
+                    CompletableFuture<Void> pushSendFuture = CompletableFuture.completedFuture(null);
+
+                    return pushSendFuture.handle((voidResult, throwable) -> {
+                        NotificationResponse finalResponse;
+                        if (throwable != null) {
+                            logger.error("Error sending Push via provider for {}: {}", recipientId, throwable.getMessage());
+                            finalResponse = new NotificationResponse(false, "Provider error: " + throwable.getMessage());
+                            notification.setStatus(NotificationStatus.FAILED);
+                        } else {
+                            logger.info("Push sent successfully via provider (placeholder) for {}.", recipientId);
+                            finalResponse = new NotificationResponse(true, "Push notification sent successfully (placeholder).");
+                            notification.setStatus(NotificationStatus.DELIVERED);
+                            updateNotificationFrequency(notification);
+                        }
+                        notification.setResponse(finalResponse);
+                        notification.setUpdatedAt(Instant.now());
+                        notificationRepository.save(notification);
+                        if (!finalResponse.isSuccess()) {
+                            throw new RuntimeException(finalResponse.getMessage());
+                        }
+                        return null;
+                    });
                 });
     }
 
@@ -254,21 +249,28 @@ public class NotificationServiceImpl implements NotificationService {
                         today
                 );
 
-                if (frequency == null) {
-                    frequency = new NotificationFrequency(
-                            notification.getRecipientId(),
-                            notification.getChannelType(),
-                            Instant.EPOCH,
-                            0
-                    );
-                }
+                NotificationFrequency currentFrequency = (frequency == null) ?
+                        new NotificationFrequency(notification.getRecipientId(), notification.getChannelType(), Instant.EPOCH, 0) :
+                        frequency;
 
-                long secondsSinceLastNotification = ChronoUnit.SECONDS.between(frequency.getLastSentAt(), Instant.now());
+                // Frequency Interval Check
+                long secondsSinceLastNotification = ChronoUnit.SECONDS.between(currentFrequency.getLastSentAt(), Instant.now());
                 if (secondsSinceLastNotification < minIntervalSeconds) {
                     String message = "Notification rate limit hit for " + notification.getRecipientId() + " on channel " + notification.getChannelType() +
-                            ". Please wait " + (minIntervalSeconds - secondsSinceLastNotification) + " seconds.";
+                            " due to min interval. Please wait " + (minIntervalSeconds - secondsSinceLastNotification) + " seconds.";
                     logger.warn(message);
-                    notification.setStatus(NotificationStatus.BLOCKED);
+                    notification.setStatus(NotificationStatus.BLOCKED_FREQUENCY);
+                    notification.setResponse(new NotificationResponse(false, message));
+                    notificationRepository.save(notification);
+                    return notification.getResponse();
+                }
+
+                // Daily Count Check
+                if (currentFrequency.getDailyCount() >= maxDailyNotifications) {
+                    String message = "Notification daily limit hit for " + notification.getRecipientId() + " on channel " + notification.getChannelType() +
+                            ". Max daily limit of " + maxDailyNotifications + " reached.";
+                    logger.warn(message);
+                    notification.setStatus(NotificationStatus.BLOCKED_DAILY_LIMIT);
                     notification.setResponse(new NotificationResponse(false, message));
                     notificationRepository.save(notification);
                     return notification.getResponse();
@@ -306,6 +308,41 @@ public class NotificationServiceImpl implements NotificationService {
                 .filter(n -> n.getStatus() == NotificationStatus.DELIVERED)
                 .findFirst()
                 .orElse(null);
+    }
+
+    private CompletableFuture<Void> updateNotificationFrequency(Notification notification) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                LocalDate today = LocalDate.now();
+                NotificationFrequency frequency = notificationFrequencyRepository.findByRecipientIdAndChannelTypeAndDate(
+                        notification.getRecipientId(),
+                        notification.getChannelType(),
+                        today
+                );
+
+                if (frequency == null) {
+                    frequency = new NotificationFrequency(
+                            notification.getRecipientId(),
+                            notification.getChannelType(),
+                            Instant.now(),
+                            1
+                    );
+                } else {
+                    if (!frequency.getDate().isEqual(today)) {
+                        frequency.setDailyCount(1);
+                        frequency.setDate(today);
+                    } else {
+                        frequency.setDailyCount(frequency.getDailyCount() + 1);
+                    }
+                    frequency.setLastSentAt(Instant.now());
+                }
+                notificationFrequencyRepository.save(frequency);
+                logger.debug("Notification frequency updated for {}: Channel {}, Count {}, Last Sent At {}",
+                        notification.getRecipientId(), notification.getChannelType(), frequency.getDailyCount(), frequency.getLastSentAt());
+            } catch (Exception e) {
+                logger.error("Error updating notification frequency for {}: {}", notification.getRecipientId(), e.getMessage(), e);
+            }
+        });
     }
 
     public List<NotificationFrequency> getNotificationStats(String recipientId, String channelType) {

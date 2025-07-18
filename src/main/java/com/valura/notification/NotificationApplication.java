@@ -7,9 +7,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 @SpringBootApplication
 @EnableMongoRepositories(basePackages = "com.valura.notification.repository")
 public class NotificationApplication {
-
 	public static void main(String[] args) {
 		SpringApplication.run(NotificationApplication.class, args);
 	}
-
 }
